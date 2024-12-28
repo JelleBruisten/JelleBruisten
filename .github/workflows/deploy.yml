@@ -29,7 +29,7 @@ jobs:
       run: npm run build # Ensure the output path matches your `angular.json`
 
     - name: Upload Build Artifact
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-artifact@v3
       with:
         name: build
         path: dist/jelle-bruisten/browser # Specify the build output folder
