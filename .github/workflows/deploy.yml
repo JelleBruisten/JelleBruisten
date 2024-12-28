@@ -34,6 +34,6 @@ jobs:
       run: npm run build
 
     - name: Deploy to GitHub Pages
-      run: npx angular-cli-ghpages --dir=dist/jelle-bruisten/browser
+      run: npx angular-cli-ghpages --dir=dist/jelle-bruisten/browser --no-silent
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
