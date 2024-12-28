@@ -28,11 +28,16 @@ jobs:
     - name: Build Angular Project
       run: npm run build -- --base-href "https://jellebruisten.github.io/" # Ensure the output path matches your `angular.json`
 
-    - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4
+    # - name: Upload Build Artifact
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: github-pages
+    #     path: dist/jelle-bruisten/browser # Specify the build output folder
+    - name: Upload static files as artifact
+      id: deployment
+      uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
       with:
-        name: github-pages
-        path: dist/jelle-bruisten/browser # Specify the build output folder
+        path: dist/jelle-bruisten/browser    
 
   # Deployment Job
   deploy:
