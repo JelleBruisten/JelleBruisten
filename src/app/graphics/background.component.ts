@@ -19,6 +19,7 @@ export class BackgroundComponent {
     strategy: RenderStrategy; 
     programHandle: RenderProgramHandles | null | undefined; 
     canvas: HTMLCanvasElement; 
+    destroy(): void
   } | null = null;
 
   constructor() {
@@ -32,6 +33,10 @@ export class BackgroundComponent {
   }
 
   async startBackground() {
+    if(this.program) {
+      this.program.destroy();
+      this.program = null;
+    }
     // TODO: remove below commented out code, its just for testing
     // this.program = await this.programManager.createBackgroundProgram("example", {
     //   offscreenRendering: false,

@@ -14,3 +14,13 @@ export interface RenderProgramHandles {
   stop(): void; 
   resize(width: number, height: number): void;
 }
+
+export interface RenderProgramOptions {
+  canvas: HTMLCanvasElement | OffscreenCanvas, 
+  navigator: Navigator,
+  width: number;
+  height: number;
+
+  // contains a webgpu shader or fragment shader in the case of webGL
+  shaderSource: string
+}

@@ -1,5 +1,4 @@
-import { RenderProgramHandles } from "../types";
-import { ExampleOptions } from "./options";
+import { RenderProgramHandles, RenderProgramOptions } from "../types";
 
 // Compile a shader
 function compileShader(gl: WebGL2RenderingContext , source: string, type: GLenum) {
@@ -43,7 +42,7 @@ function createProgram(gl: WebGL2RenderingContext , vertexSource: string, fragme
   return program;
 }
 
-export async function webGL2_Example(options: ExampleOptions): Promise<RenderProgramHandles | null> {
+export async function webGL2Driver(options: RenderProgramOptions): Promise<RenderProgramHandles | null> {
   const canvas = options.canvas;
   // Create a WebGL context
   const gl = canvas.getContext('webgl2') as WebGL2RenderingContext;
@@ -79,18 +78,7 @@ export async function webGL2_Example(options: ExampleOptions): Promise<RenderPro
       gl_Position = vec4(a_position, 0.0, 1.0);
   }
   `;
-  const fragmentSource = `
-  precision mediump float;
-
-  uniform vec2 u_resolution;
-  uniform float u_time;
-
-  void main() {
-      vec2 uv = gl_FragCoord.xy / u_resolution;
-      vec3 col = 0.5 + 0.5 * cos(u_time + uv.xyx + vec3(0.0, 2.0, 4.0));
-      gl_FragColor = vec4(col, 1.0);
-  }
-  `;
+  const fragmentSource = options.shaderSource;
 
   const program = createProgram(gl, vertexSource, fragmentSource);
   // Look up attribute and uniform locations
