@@ -1,1 +1,12 @@
-/* You can add global styles to this file, and also import other style files */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+html, body, app-root {
+  min-height: 100%;
+  font-size: 16px;
+  height: 100%;
+  position: relative;
+  display: block;
+}

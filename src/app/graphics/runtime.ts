@@ -1,0 +1,63 @@
+import { DOCUMENT } from "@angular/common";
+import { inject, Injectable } from "@angular/core";
+import { RenderStrategy, RenderStrategyType } from "./types";
+
+/**
+ * 
+ */
+@Injectable({
+  providedIn: 'root'
+})
+export class GraphicsRuntime {
+  private readonly document = inject(DOCUMENT);
+  private readonly window = this.document.defaultView;
+  private readonly navigator = this.window?.navigator;
+
+  // Checks if both OffscreenCanvas and Web Workers are supported.
+  supportsOffscreen() {
+    return this.window && 'OffscreenCanvas' in this.window && typeof this.window.Worker !== 'undefined';
+  }
+
+  // Checks if WebGPU is supported.
+  supportsWebGPU() {
+    return this.navigator && 'gpu' in this.navigator;
+  }
+
+   // Checks if WebGL is supported.
+  supportsWebGL() {
+    if(!this.document) {
+      return false;
+    }
+
+    const canvas = this.document.createElement("canvas");
+
+    // Get WebGLRenderingContext from canvas element.
+    const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+
+    return gl instanceof WebGLRenderingContext
+  }
+
+  createRenderStrategy() {
+    const type = this.detectBestRenderType();
+
+    // Explicitly set offscreenRendering to false if the type is Image
+    const offscreenRendering = type === RenderStrategyType.Image ? false : this.supportsOffscreen();
+
+    return {
+      type: RenderStrategyType.WebGL,
+      offscreenRendering: offscreenRendering
+    } as RenderStrategy
+  }
+
+  private detectBestRenderType() {
+    // Check WebGPU support first, then WebGL, and finally fallback to Image
+    if (this.supportsWebGPU()) {
+      return RenderStrategyType.WebGPU;
+    } else if (this.supportsWebGL()) {
+      return RenderStrategyType.WebGL;
+    } else {
+      // Fallback if neither WebGPU nor WebGL is supported
+      return RenderStrategyType.Image; 
+    }
+  }
+}
