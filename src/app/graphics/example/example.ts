@@ -1,4 +1,4 @@
-import { RenderStrategy, RenderStrategyType } from "../types";
+import { RenderProgramHandles, RenderStrategy, RenderStrategyType } from "../types";
 import { ExampleOptions } from "./options";
 
 export async function start(renderStrategy: RenderStrategy, document: Document) {
@@ -6,7 +6,7 @@ export async function start(renderStrategy: RenderStrategy, document: Document) 
   const canvas = document.createElement('canvas');
   canvas.height = window.innerHeight;
   canvas.width = window.innerWidth;
-  let programHandles;
+  let programHandles: RenderProgramHandles | null = null;
 
   if(renderStrategy.offscreenRendering) {
     const offscreen = canvas.transferControlToOffscreen();
@@ -22,6 +22,12 @@ export async function start(renderStrategy: RenderStrategy, document: Document) 
     programHandles = {
       stop: () => {
         worker.postMessage({ type: 'stop'})
+      },
+      start: () => {
+        worker.postMessage({ type: 'start' })
+      },
+      resize: (width: number, height: number) => {
+        worker.postMessage({ type: 'resize', width: width, height: height})
       }
     }
     

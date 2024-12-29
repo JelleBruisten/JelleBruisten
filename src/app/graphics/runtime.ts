@@ -37,14 +37,14 @@ export class GraphicsRuntime {
     return gl instanceof WebGLRenderingContext
   }
 
-  createRenderStrategy() {
+  getRecommendedRenderStrategy() {
     const type = this.detectBestRenderType();
 
     // Explicitly set offscreenRendering to false if the type is Image
     const offscreenRendering = type === RenderStrategyType.Image ? false : this.supportsOffscreen();
 
     return {
-      type: RenderStrategyType.WebGL,
+      type: type,
       offscreenRendering: offscreenRendering
     } as RenderStrategy
   }

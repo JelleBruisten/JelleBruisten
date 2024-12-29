@@ -1,6 +1,9 @@
 import { Component, ElementRef, inject } from "@angular/core";
 import { BackgroundProgramManager } from "./manager";
-import { RenderStrategy } from "./types";
+import { RenderProgramHandles, RenderStrategy } from "./types";
+import { fromEvent } from "rxjs";
+import { DOCUMENT } from "@angular/common";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 @Component({
   selector: 'app-background',
@@ -14,21 +17,30 @@ export class BackgroundComponent {
   private readonly programManager = inject(BackgroundProgramManager);
   private program: { 
     strategy: RenderStrategy; 
-    programHandle: { 
-      stop: () => void; 
-    } | null | undefined; 
+    programHandle: RenderProgramHandles | null | undefined; 
     canvas: HTMLCanvasElement; 
   } | null = null;
 
   constructor() {
     this.startBackground();
+
+    // handle resize
+    const window = inject(DOCUMENT).defaultView as Window;
+    fromEvent(window, 'resize').pipe(takeUntilDestroyed()).subscribe(() => {      
+      this.program?.programHandle?.resize(window.innerWidth, window.innerHeight)
+    });
   }
 
   async startBackground() {
-    const program = await this.programManager.createBackgroundProgram();
-    this.program = program;
-    if(program) {    
-      (this.host.nativeElement as HTMLElement).replaceChildren(program.canvas);
+    // TODO: remove below commented out code, its just for testing
+    // this.program = await this.programManager.createBackgroundProgram("example", {
+    //   offscreenRendering: false,
+    //   type: RenderStrategyType.WebGPU
+    // });
+
+    this.program = await this.programManager.createBackgroundProgram();
+    if(this.program) {    
+      (this.host.nativeElement as HTMLElement).replaceChildren(this.program.canvas);      
     }
-  } 
+  }
 }

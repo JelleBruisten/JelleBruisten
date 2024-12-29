@@ -1,3 +1,4 @@
+import { RenderProgramHandles } from "../types";
 import { ExampleOptions } from "./options";
 
 // Compile a shader
@@ -42,17 +43,18 @@ function createProgram(gl: WebGL2RenderingContext , vertexSource: string, fragme
   return program;
 }
 
-export async function webGL2_Example(options: ExampleOptions) {
+export async function webGL2_Example(options: ExampleOptions): Promise<RenderProgramHandles | null> {
+  const canvas = options.canvas;
   // Create a WebGL context
-  const gl = options.canvas.getContext('webgl2') as WebGL2RenderingContext;
+  const gl = canvas.getContext('webgl2') as WebGL2RenderingContext;
 
-  if(!options.canvas || !gl) {
+  if(!canvas || !gl) {
     throw new Error('Failed get a canvas/webgl rendering context');
   }
 
   // Resize the canvas to fit the window
-  options.canvas.width = options.width;
-  options.canvas.height = options.height;
+  canvas.width = options.width;
+  canvas.height = options.height;
 
     // Vertex data for a full-screen quad
   const vertices = new Float32Array([
@@ -101,13 +103,13 @@ export async function webGL2_Example(options: ExampleOptions) {
   gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
   // Render loop
-  let rafHandle: number;
+  let rafHandle: number | null;
   let stopped = false;
   const render = (time: number) => {
     time *= 0.001; // Convert time to seconds
 
     // Resize the canvas to fit the window
-    gl.viewport(0, 0, options.canvas.width, options.canvas.height);
+    gl.viewport(0, 0, canvas.width, canvas.height);
 
     // Clear the screen
     gl.clearColor(0.5, 0.5, 0.5, 1.0);
@@ -117,7 +119,7 @@ export async function webGL2_Example(options: ExampleOptions) {
     gl.useProgram(program);
 
     // Set the uniforms
-    gl.uniform2f(resolutionLocation, options.canvas.width, options.canvas.height);
+    gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
     gl.uniform1f(timeLocation, time);
 
     // Draw the quad
@@ -139,7 +141,18 @@ export async function webGL2_Example(options: ExampleOptions) {
         cancelAnimationFrame(rafHandle)
       }
       stopped = true;
+    },
+    start: () => {
+      if(rafHandle) {
+        cancelAnimationFrame(rafHandle)
+      }
+      stopped = false;
+      requestAnimationFrame(render);
+    },
+    resize: (width, height) => {
+      canvas.width = width;
+      canvas.height = height
     }
-  };
+  } satisfies RenderProgramHandles;
 
 }

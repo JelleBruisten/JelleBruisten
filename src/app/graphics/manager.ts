@@ -2,6 +2,7 @@ import { inject, Injectable } from "@angular/core";
 import { GraphicsRuntime } from "./runtime";
 import { RenderStrategy, RenderStrategyType } from "./types";
 import { DOCUMENT } from "@angular/common";
+import { fromEvent } from "rxjs";
 
 @Injectable({
   providedIn: 'root',
@@ -17,7 +18,7 @@ export class BackgroundProgramManager {
 
   async createBackgroundProgram(name = 'example', renderStrategy?: RenderStrategy) {
     if(!renderStrategy) {
-      renderStrategy = this.runtime.createRenderStrategy();
+      renderStrategy = this.runtime.getRecommendedRenderStrategy();
     }
 
     const programConfig = {
@@ -25,7 +26,8 @@ export class BackgroundProgramManager {
       name: name
     };
 
-    return this.resolveProgram(programConfig);
+    const program = this.resolveProgram(programConfig);
+    return program;
   }
 
   async resolveProgram(programConfig: {
@@ -37,9 +39,6 @@ export class BackgroundProgramManager {
       case 'example':
         return await import('./example/example').then(async (x) => {
           const handles = await x.start(programConfig, this.document)
-
-          console.log(handles);
-
           return handles;
         })
     }

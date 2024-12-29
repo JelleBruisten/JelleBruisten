@@ -1,11 +1,9 @@
 /// <reference lib="webworker" />
-import { RenderStrategy, RenderStrategyType } from "../types";
+import { RenderProgramHandles, RenderStrategy, RenderStrategyType } from "../types";
 import { ExampleOptions } from "./options";
 
 
-let programHandles: {
-  stop: () => void
-} | null;
+let programHandles: RenderProgramHandles | null = null;
 interface ExampleInit {
   canvas: OffscreenCanvas;
   strategy: RenderStrategy,
@@ -41,6 +39,9 @@ onmessage = async(evt) => {
     break;
     case 'stop':
       programHandles?.stop();
+    break;
+    case 'resize':
+    	programHandles?.resize(evt.data.width, evt.data.height)
     break;
   }
 };

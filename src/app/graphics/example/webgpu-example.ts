@@ -1,10 +1,9 @@
 /// <reference types="@webgpu/types" />
 
+import { RenderProgramHandles } from "../types";
 import { ExampleOptions } from "./options";
 
-
-
-export async function webGPU_Example(options: ExampleOptions) {
+export async function webGPU_Example(options: ExampleOptions): Promise<RenderProgramHandles | null> {
   if(!options.navigator?.gpu) {
     return null;
   }
@@ -16,14 +15,14 @@ export async function webGPU_Example(options: ExampleOptions) {
     return null;
   }
 
-
+  const canvas = options.canvas;
   const context = options.canvas.getContext('webgpu');
   if(!context) {
     return null;
   }
 
-  options.canvas.width = options.width ?? 300;
-  options.canvas.height = options.height ?? 300;
+  canvas.width = options.width ?? 300;
+  canvas.height = options.height ?? 300;
 
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
   context.configure({
@@ -39,12 +38,12 @@ export async function webGPU_Example(options: ExampleOptions) {
       ) -> @builtin(position) vec4f {
         let pos = array(
           vec2f( -1.0,  -1.0), 
-          vec2f(-1.0, 1.0),  
-          vec2f( 1.0, -1.0), 
-
-          vec2f( 1.0,  1.0), 
           vec2f(1.0, -1.0),  
-          vec2f( -1.0, 1.0) 
+          vec2f( -1.0, 1.0), 
+
+          vec2f( -1.0,  1.0), 
+          vec2f(1.0, -1.0),  
+          vec2f( 1.0, 1.0) 
         );
  
         return vec4f(pos[vertexIndex], 0.0, 1.0);
@@ -73,7 +72,7 @@ export async function webGPU_Example(options: ExampleOptions) {
 
   // Uniform setup
   const uniforms = {
-    iResolution: [options.width, options.height],
+    iResolution: [canvas.width, canvas.height],
     iTime: 0.0,
   };
 
@@ -178,5 +177,17 @@ const updateUniforms = (time: number) => {
       }
       stopped = true;
     },
-  };
+    start: () => {
+      if(rafHandle) {
+        cancelAnimationFrame(rafHandle)
+      }
+      stopped = false;
+      requestAnimationFrame(render);
+    },
+    resize: (width, height) => {
+      canvas.width = width;
+      canvas.height = height;
+      uniforms.iResolution = [canvas.width, canvas.height];
+    }
+  } satisfies RenderProgramHandles;
 }
