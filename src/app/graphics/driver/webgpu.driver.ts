@@ -109,10 +109,27 @@ const updateUniforms = (time: number) => {
 };
   
   // Render loop
-  let rafHandle: number;
-  let stopped = false;
-  const render = (time: number) => {
-    updateUniforms(time);
+  let rafHandle: number | null = null;
+
+  // control wheteer we are paused
+  let paused = false;
+
+  // time
+  let accumulatedTime = 0;
+  let lastRenderTime = 0; // Last frame's timestamp
+  const render = (timestamp: number) => {
+    if (!lastRenderTime) {
+      lastRenderTime = timestamp;
+  }
+
+  if (paused) {
+      return; // Skip rendering while paused
+  }
+
+    const delta = timestamp - lastRenderTime; // Time since the last frame
+    accumulatedTime += delta; // Add delta to accumulated time
+    lastRenderTime = timestamp; // Update the last render time
+    updateUniforms(accumulatedTime);
 
     renderPassDescriptor.colorAttachments[0].view = context
       .getCurrentTexture()
@@ -121,32 +138,36 @@ const updateUniforms = (time: number) => {
     const encoder = device.createCommandEncoder({ label: 'Render encoder' });
     const pass = encoder.beginRenderPass(renderPassDescriptor);
     pass.setPipeline(pipeline);
-    pass.setBindGroup(0, bindGroup); // Bind the uniform group
-    pass.draw(6); // Draw the full-screen quad
+    pass.setBindGroup(0, bindGroup);
+    pass.draw(6);
     pass.end();
 
     const commandBuffer = encoder.finish();
     device.queue.submit([commandBuffer]);
-
-    if(!stopped) {
-      rafHandle = requestAnimationFrame(render);
-    }
+    rafHandle = requestAnimationFrame(render);
   };
-  rafHandle =requestAnimationFrame(render);
+  rafHandle = requestAnimationFrame(render);
 
   return {
-    stop: () => {
-      if(rafHandle) {
-        cancelAnimationFrame(rafHandle)
+    pause: () => {
+      if (paused) return;
+
+      paused = true;
+
+      // cancel the AnimationFrame
+      if (rafHandle) {
+          cancelAnimationFrame(rafHandle);
+          rafHandle = null;
       }
-      stopped = true;
     },
-    start: () => {
-      if(rafHandle) {
-        cancelAnimationFrame(rafHandle)
-      }
-      stopped = false;
-      requestAnimationFrame(render);
+    resume: () => {
+      if (!paused) return;
+
+      paused = false;
+      lastRenderTime = performance.now();
+
+      // Restart the render loop
+      rafHandle = requestAnimationFrame(render);
     },
     resize: (width, height) => {
       canvas.width = width;

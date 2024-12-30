@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, viewChild } from '@angular/core';
 import { BackgroundComponent } from "./graphics/background.component";
 
 @Component({
@@ -10,6 +10,8 @@ import { BackgroundComponent } from "./graphics/background.component";
   styleUrl: './app.component.css'
 })
 export class AppComponent {
+
+  background = viewChild(BackgroundComponent);
 
   // blockMainThread() {
   //   const ms = 5000;

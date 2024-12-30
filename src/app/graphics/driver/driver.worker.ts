@@ -9,7 +9,7 @@ interface ExampleInit {
   strategy: RenderStrategy,
   height: number;
   width: number;
-  name: string
+  shaderName: string
 }
 const init = async (evt: ExampleInit) => {
   const canvas = evt.canvas as OffscreenCanvas;
@@ -23,7 +23,7 @@ const init = async (evt: ExampleInit) => {
     width: evt.width,
   } as const
 
-  const shaderName = evt.name;
+  const shaderName = evt.shaderName;
 
   switch(renderStrategy.type) {
     case RenderStrategyType.WebGL: {
@@ -51,10 +51,10 @@ onmessage = async(evt) => {
       init(evt.data);
     break;
     case 'stop':
-      programHandles?.stop();
+      programHandles?.resume();
     break;
     case 'start':
-      programHandles?.start();
+      programHandles?.pause();
     break;
     case 'resize':
     	programHandles?.resize(evt.data.width, evt.data.height)

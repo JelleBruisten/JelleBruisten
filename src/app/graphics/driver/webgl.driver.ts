@@ -71,8 +71,8 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
   // Compile and link the shaders
-  const vertexSource = `
-  attribute vec2 a_position;
+  const vertexSource = `#version 300 es
+  in vec2 a_position;
 
   void main() {
       gl_Position = vec4(a_position, 0.0, 1.0);
@@ -91,10 +91,26 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
   gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
   // Render loop
-  let rafHandle: number | null;
-  let stopped = false;
-  const render = (time: number) => {
-    time *= 0.001; // Convert time to seconds
+  let rafHandle: number | null = null;
+
+  // control whether we are paused
+  let paused = false;
+
+  // time
+  let accumulatedTime = 0;
+  let lastRenderTime = 0; // Last frame's timestamp
+  const render = (timestamp: number) => {
+    if (!lastRenderTime) {
+      lastRenderTime = timestamp;
+    }
+
+    if (paused) {
+        return; // Skip rendering while paused
+    }
+
+    const delta = timestamp - lastRenderTime; // Time since the last frame
+    accumulatedTime += delta; // Add delta to accumulated time
+    lastRenderTime = timestamp; // Update the last render time
 
     // Resize the canvas to fit the window
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -108,14 +124,12 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
 
     // Set the uniforms
     gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
-    gl.uniform1f(timeLocation, time);
+    gl.uniform1f(timeLocation, accumulatedTime / 1000);
 
     // Draw the quad
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    if(!stopped) {
-      requestAnimationFrame(render);
-    }
+    requestAnimationFrame(render);
   }
 
   // Start rendering
@@ -124,18 +138,25 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
   rafHandle = requestAnimationFrame(render);
 
   return {
-    stop: () => {
-      if(rafHandle) {
-        cancelAnimationFrame(rafHandle)
+    pause: () => {
+      if (paused) return;
+
+      paused = true;
+
+      // cancel the AnimationFrame
+      if (rafHandle) {
+          cancelAnimationFrame(rafHandle);
+          rafHandle = null;
       }
-      stopped = true;
     },
-    start: () => {
-      if(rafHandle) {
-        cancelAnimationFrame(rafHandle)
-      }
-      stopped = false;
-      requestAnimationFrame(render);
+    resume: () => {
+      if (!paused) return;
+
+      paused = false;
+      lastRenderTime = performance.now();
+
+      // Restart the render loop
+      rafHandle = requestAnimationFrame(render);
     },
     resize: (width, height) => {
       canvas.width = width;

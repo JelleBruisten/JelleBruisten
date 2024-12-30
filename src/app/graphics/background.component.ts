@@ -32,20 +32,23 @@ export class BackgroundComponent {
     });
   }
 
-  async startBackground() {
+  private async startBackground() {
     if(this.program) {
       this.program.destroy();
       this.program = null;
     }
-    // TODO: remove below commented out code, its just for testing
-    // this.program = await this.programManager.createBackgroundProgram("example", {
-    //   offscreenRendering: false,
-    //   type: RenderStrategyType.WebGPU
-    // });
 
     this.program = await this.programManager.createBackgroundProgram();
     if(this.program) {    
       (this.host.nativeElement as HTMLElement).replaceChildren(this.program.canvas);      
     }
+  }
+
+  public pause() {
+    this.program?.programHandle?.pause();
+  }
+
+  public resume() {
+    this.program?.programHandle?.resume();
   }
 }
