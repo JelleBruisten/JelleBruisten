@@ -17,10 +17,10 @@ export class BackgroundProgramManager {
       renderStrategy = this.runtime.getRecommendedRenderStrategy();
     }
 
-    renderStrategy = {
-      offscreenRendering: false,
-      type: RenderStrategyType.WebGL
-    }
+    // renderStrategy = {
+    //   offscreenRendering: false,
+    //   type: RenderStrategyType.WebGL
+    // }
 
     const program = this.startProgram(name, renderStrategy, this.document);
     return program;

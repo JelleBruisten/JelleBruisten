@@ -9,7 +9,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
   selector: 'app-background',
   template: ``,
   host: {
-    'class': 'fixed bg-red-500 z-0'
+    'class': 'fixed z-0'
   }
 })
 export class BackgroundComponent {
