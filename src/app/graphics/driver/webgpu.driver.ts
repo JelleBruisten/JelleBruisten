@@ -69,7 +69,7 @@ export async function webGPUDriver(options: RenderProgramOptions): Promise<Rende
     ],
   });
 
-  const pipeline = device.createRenderPipeline({
+  let pipeline: GPURenderPipeline = device.createRenderPipeline({
     label: 'Basic shader',
     layout: device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] }),
     vertex: {
@@ -97,16 +97,16 @@ export async function webGPUDriver(options: RenderProgramOptions): Promise<Rende
   } as const; 
 
   // Update uniforms function
-const updateUniforms = (time: number) => {
-  uniforms.iTime = time / 1000; // Convert time to seconds
-  const uniformData = new Float32Array([
-    uniforms.iResolution[0],
-    uniforms.iResolution[1],
-    uniforms.iTime,
-    0.0, // Padding for alignment
-  ]);
-  device.queue.writeBuffer(uniformBuffer, 0, uniformData.buffer);
-};
+  const updateUniforms = (time: number) => {
+    uniforms.iTime = time / 1000; // Convert time to seconds
+    const uniformData = new Float32Array([
+      uniforms.iResolution[0],
+      uniforms.iResolution[1],
+      uniforms.iTime,
+      0.0, // Padding for alignment
+    ]);
+    device.queue.writeBuffer(uniformBuffer, 0, uniformData.buffer);
+  };
   
   // Render loop
   let rafHandle: number | null = null;
@@ -134,7 +134,6 @@ const updateUniforms = (time: number) => {
     renderPassDescriptor.colorAttachments[0].view = context
       .getCurrentTexture()
       .createView();
-
     const encoder = device.createCommandEncoder({ label: 'Render encoder' });
     const pass = encoder.beginRenderPass(renderPassDescriptor);
     pass.setPipeline(pipeline);
@@ -143,7 +142,7 @@ const updateUniforms = (time: number) => {
     pass.end();
 
     const commandBuffer = encoder.finish();
-    device.queue.submit([commandBuffer]);
+    device?.queue?.submit([commandBuffer]);
     rafHandle = requestAnimationFrame(render);
   };
   rafHandle = requestAnimationFrame(render);
@@ -173,6 +172,15 @@ const updateUniforms = (time: number) => {
       canvas.width = width;
       canvas.height = height;
       uniforms.iResolution = [canvas.width, canvas.height];
+    },
+    stop: () => {
+      if (rafHandle) {
+        cancelAnimationFrame(rafHandle);
+        rafHandle = null;
+      }
+      
+      device.destroy();
+      uniformBuffer.destroy();
     }
   } satisfies RenderProgramHandles;
 }

@@ -12,21 +12,25 @@ export class BackgroundProgramManager {
   private readonly document = inject(DOCUMENT);
   private readonly runtime = inject(GraphicsRuntime);
 
-  async createBackgroundProgram(name = 'snow', renderStrategy?: RenderStrategy) {
+  // lazy properties
+  private shaderCache: Map<string, string> | undefined;
+  private worker: Worker | undefined;
+
+  async startProgram(name = 'snow', renderStrategy?: RenderStrategy) {
     if(!renderStrategy) {
       renderStrategy = this.runtime.getRecommendedRenderStrategy();
     }
 
     // renderStrategy = {
-    //   offscreenRendering: false,
-    //   type: RenderStrategyType.WebGL
+    //   offscreenRendering: true,
+    //   type: RenderStrategyType.WebGPU
     // }
 
-    const program = this.startProgram(name, renderStrategy, this.document);
+    const program = this.startProgramHelper(name, renderStrategy, this.document);
     return program;
   }
 
-  async startProgram(name: string, renderStrategy: RenderStrategy, document: Document) {
+  async startProgramHelper(name: string, renderStrategy: RenderStrategy, document: Document) {
     // create a new canvas and apply current window size
     const canvas = document.createElement('canvas');
     canvas.height = window.innerHeight;
@@ -34,11 +38,10 @@ export class BackgroundProgramManager {
 
     // program handles/worker references
     let programHandles: RenderProgramHandles | null = null;
-    let worker: Worker | undefined;
 
     // start program either offscreen or normally
     if(renderStrategy.offscreenRendering) {
-       [programHandles, worker] = await this.startProgramOffscreen(name, canvas, renderStrategy)      
+      programHandles = await this.startProgramOffscreen(name, canvas, renderStrategy)      
     } else {    
       programHandles = await this.startProgramNormally(name, canvas, renderStrategy);
     }
@@ -48,14 +51,14 @@ export class BackgroundProgramManager {
       strategy: renderStrategy,
       programHandle: programHandles,
       canvas: canvas,
-      destroy() {
+      destroy: () => {
         // stop program, remove canvas and terminate the worker if there is any
         programHandles?.resume;
         canvas?.remove();
 
         // cleanup worker
-        worker?.terminate();
-        worker = undefined;
+        this.worker?.terminate();
+        this.worker = undefined;
       }
     } as const;
 
@@ -67,8 +70,11 @@ export class BackgroundProgramManager {
   }
 
   async startProgramOffscreen(shaderName: string,canvas: HTMLCanvasElement, renderStrategy: RenderStrategy) {
+    // worker 
+    const worker = this.getWorker();
+
+    // setup program
     const offscreen = canvas.transferControlToOffscreen();
-    const worker = new Worker(new URL('./driver/driver.worker', import.meta.url));
     worker.postMessage({ 
       canvas: offscreen, 
       strategy: renderStrategy,
@@ -78,19 +84,28 @@ export class BackgroundProgramManager {
       type: 'init' 
     }, [offscreen]);
 
+    // setup worker
     const programHandles: RenderProgramHandles = {
-      resume: () => {
+      stop: () => {
         worker?.postMessage({ type: 'stop'})
       },
+      resume: () => {
+        worker?.postMessage({ type: 'resume'})
+      },
       pause: () => {
-        worker?.postMessage({ type: 'start' })
+        worker?.postMessage({ type: 'pause' })
       },
       resize: (width: number, height: number) => {
         worker?.postMessage({ type: 'resize', width: width, height: height})
-      }
+      },
     }
 
-    return [programHandles, worker] as const;
+    return programHandles;
+  }
+
+  private getWorker() {
+    this.worker ??= new Worker(new URL('./driver/driver.worker', import.meta.url));
+    return this.worker;
   }
 
   async startProgramNormally(shaderName: string, canvas: HTMLCanvasElement, renderStrategy: RenderStrategy) {
@@ -104,7 +119,7 @@ export class BackgroundProgramManager {
 
     switch(renderStrategy.type) {
       case RenderStrategyType.WebGL: {
-        const shaderSource = await fetch(`./shaders/${shaderName}.glsl`).then((x) => x.text());
+        const shaderSource = await this.resolveShader(`${shaderName}.glsl`);
         programHandles = await import('./driver/webgl.driver').then(async (x) => x.webGL2Driver({
           ...options,
           shaderSource: shaderSource
@@ -112,7 +127,7 @@ export class BackgroundProgramManager {
       }
       break;
       case RenderStrategyType.WebGPU: {
-        const shaderSource = await fetch(`./shaders/${shaderName}.wgsl`).then((x) => x.text());
+        const shaderSource = await this.resolveShader(`${shaderName}.wgsl`);
         programHandles = await import('./driver/webgpu.driver').then(async (x) => x.webGPUDriver({
           ...options,
           shaderSource: shaderSource
@@ -122,5 +137,29 @@ export class BackgroundProgramManager {
     }
 
     return programHandles;
+  }
+
+  private async resolveShader(shaderName: string) {
+    let shaderSource: string | null | undefined = null;
+
+    // lazy create map
+    if(this.shaderCache && this.shaderCache.has(shaderName)) {
+      shaderSource = this.shaderCache.get(shaderName);
+
+      if(shaderSource) {
+        return shaderSource
+      }
+    }
+
+    shaderSource = await fetch(`./shaders/${shaderName}`).then((x) => x.text());
+    if(shaderSource) {
+
+      // lazily create the cache if it does not exist
+      this.shaderCache ??= new Map<string, string>();
+
+      // set the shaderName
+      this.shaderCache.set(shaderName, shaderSource);
+    }
+    return shaderSource as string;
   }
 }

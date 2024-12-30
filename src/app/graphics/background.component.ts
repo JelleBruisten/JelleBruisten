@@ -15,15 +15,10 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 export class BackgroundComponent {
   private readonly host = inject(ElementRef);
   private readonly programManager = inject(BackgroundProgramManager);
-  private program: { 
-    strategy: RenderStrategy; 
-    programHandle: RenderProgramHandles | null | undefined; 
-    canvas: HTMLCanvasElement; 
-    destroy(): void
-  } | null = null;
+  private program: Awaited<ReturnType<typeof BackgroundProgramManager.prototype.startProgram>> | null = null;
 
   constructor() {
-    this.startBackground();
+    this.start();
 
     // handle resize
     const window = inject(DOCUMENT).defaultView as Window;
@@ -32,13 +27,8 @@ export class BackgroundComponent {
     });
   }
 
-  private async startBackground() {
-    if(this.program) {
-      this.program.destroy();
-      this.program = null;
-    }
-
-    this.program = await this.programManager.createBackgroundProgram();
+  async start(name?: string, renderStrategy?: RenderStrategy) {
+    this.program = await this.programManager.startProgram(name, renderStrategy);
     if(this.program) {    
       (this.host.nativeElement as HTMLElement).replaceChildren(this.program.canvas);      
     }

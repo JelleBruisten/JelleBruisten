@@ -10,6 +10,7 @@ export interface RenderStrategy {
 }
 
 export interface RenderProgramHandles {
+  stop(): void;
   pause(): void;
   resume(): void; 
   resize(width: number, height: number): void;

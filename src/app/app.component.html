@@ -1,7 +1,13 @@
 <div class="absolute z-10 w-full h-full">
   <div class="container mx-auto">
     <div class="flex gap-2">
-      <button>Example</button> <button>Snow</button> - <button (click)="background()?.resume()">Play</button> <button (click)="background()?.pause()">Pause</button>
+      <button (click)="background()?.start('example')">Example</button> 
+      <button (click)="background()?.start('snow')">Snow</button> 
+      
+      - 
+
+      <button (click)="background()?.resume()">Play</button> 
+      <button (click)="background()?.pause()">Pause</button>
     </div>
   </div>  
 </div>

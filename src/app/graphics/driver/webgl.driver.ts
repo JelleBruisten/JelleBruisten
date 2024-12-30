@@ -39,7 +39,14 @@ function createProgram(gl: WebGL2RenderingContext , vertexSource: string, fragme
       gl.deleteProgram(program);
       throw new Error('Failed to link program');
   }
-  return program;
+  return [
+    program,
+    () => {
+      gl.deleteProgram(program);
+      gl.deleteShader(vertexShader);
+      gl.deleteShader(fragmentShader)
+    }
+  ] as const;
 }
 
 export async function webGL2Driver(options: RenderProgramOptions): Promise<RenderProgramHandles | null> {
@@ -80,7 +87,7 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
   `;
   const fragmentSource = options.shaderSource;
 
-  const program = createProgram(gl, vertexSource, fragmentSource);
+  const [program, cleanupProgram] = createProgram(gl, vertexSource, fragmentSource);
   // Look up attribute and uniform locations
   const positionLocation = gl.getAttribLocation(program, 'a_position');
   const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
@@ -161,6 +168,15 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
     resize: (width, height) => {
       canvas.width = width;
       canvas.height = height
+    },
+    stop: () => {
+      if (rafHandle) {
+        cancelAnimationFrame(rafHandle);
+        rafHandle = null;
+      }
+
+      // cleanup program
+      cleanupProgram();
     }
   } satisfies RenderProgramHandles;
 
