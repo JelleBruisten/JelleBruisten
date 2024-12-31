@@ -41,4 +41,8 @@ export class BackgroundComponent {
   public resume() {
     this.program?.programHandle?.resume();
   }
+
+  public stop() {
+    this.program?.programHandle?.stop();
+  }
 }

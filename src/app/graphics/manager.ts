@@ -30,7 +30,7 @@ export class BackgroundProgramManager {
     return program;
   }
 
-  async startProgramHelper(name: string, renderStrategy: RenderStrategy, document: Document) {
+  private async startProgramHelper(name: string, renderStrategy: RenderStrategy, document: Document) {
     // create a new canvas and apply current window size
     const canvas = document.createElement('canvas');
     canvas.height = window.innerHeight;
@@ -53,12 +53,8 @@ export class BackgroundProgramManager {
       canvas: canvas,
       destroy: () => {
         // stop program, remove canvas and terminate the worker if there is any
-        programHandles?.resume;
+        programHandles?.stop();
         canvas?.remove();
-
-        // cleanup worker
-        this.worker?.terminate();
-        this.worker = undefined;
       }
     } as const;
 
@@ -69,7 +65,7 @@ export class BackgroundProgramManager {
     return program;
   }
 
-  async startProgramOffscreen(shaderName: string,canvas: HTMLCanvasElement, renderStrategy: RenderStrategy) {
+  private async startProgramOffscreen(shaderName: string,canvas: HTMLCanvasElement, renderStrategy: RenderStrategy) {
     // worker 
     const worker = this.getWorker();
 
@@ -108,7 +104,7 @@ export class BackgroundProgramManager {
     return this.worker;
   }
 
-  async startProgramNormally(shaderName: string, canvas: HTMLCanvasElement, renderStrategy: RenderStrategy) {
+  private async startProgramNormally(shaderName: string, canvas: HTMLCanvasElement, renderStrategy: RenderStrategy) {
     let programHandles: RenderProgramHandles | null = null;
     const options = {
       canvas: canvas,

@@ -55,5 +55,3 @@ fn fs(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
 
     return fragColor;
 }
-
-
