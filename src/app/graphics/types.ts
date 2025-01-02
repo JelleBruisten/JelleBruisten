@@ -1,7 +1,6 @@
 export const enum RenderStrategyType {
   WebGL,
-  WebGPU,
-  Image
+  WebGPU
 }
 
 export interface RenderStrategy {

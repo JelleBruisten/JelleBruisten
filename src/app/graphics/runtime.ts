@@ -41,7 +41,8 @@ export class GraphicsRuntime {
     const type = this.detectBestRenderType();
 
     // Explicitly set offscreenRendering to false if the type is Image
-    const offscreenRendering = type === RenderStrategyType.Image ? false : this.supportsOffscreen();
+    // const offscreenRendering = type === RenderStrategyType.Image ? false : this.supportsOffscreen();
+    const offscreenRendering = this.supportsOffscreen();
 
     return {
       type: type,
@@ -57,7 +58,8 @@ export class GraphicsRuntime {
       return RenderStrategyType.WebGL;
     } else {
       // Fallback if neither WebGPU nor WebGL is supported
-      return RenderStrategyType.Image; 
+      // return RenderStrategyType.Image;
+      return null; 
     }
   }
 }
