@@ -13,6 +13,7 @@ export interface RenderProgramHandles {
   pause(): void;
   resume(): void; 
   resize(width: number, height: number): void;
+  mousemove(x: number, y: number): void
 }
 
 export interface RenderProgramOptions {

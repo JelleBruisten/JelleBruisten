@@ -4,6 +4,14 @@ import { RenderProgramHandles, RenderProgramOptions, RenderStrategy, RenderStrat
 import { DOCUMENT } from "@angular/common";
 import { printRenderInfo } from "./driver/debug";
 
+export interface ProgramRef { 
+  readonly name: string; 
+  readonly strategy: RenderStrategy; 
+  readonly programHandle: RenderProgramHandles | null; 
+  readonly canvas: HTMLCanvasElement; 
+  readonly destroy: () => void; 
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -15,29 +23,31 @@ export class BackgroundProgramManager {
   // lazy properties
   private shaderCache: Map<string, string> | undefined;
   private worker: Worker | undefined;
+  private currentProgram: ProgramRef | null = null;
 
-  async startProgram(name = 'snow', renderStrategy?: RenderStrategy) {
+  async startProgram(name = 'dots', renderStrategy?: RenderStrategy | null) {
     if(!renderStrategy) {
       renderStrategy = this.runtime.getRecommendedRenderStrategy();
     }
 
-    // renderStrategy = {
-    //   offscreenRendering: true,
-    //   type: RenderStrategyType.WebGPU
-    // }
-
-    const program = this.startProgramHelper(name, renderStrategy, this.document);
+    const program = await this.startProgramHelper(name, renderStrategy, this.document);
     return program;
   }
 
   private async startProgramHelper(name: string, renderStrategy: RenderStrategy, document: Document) {
+    if(this.currentProgram && this.currentProgram.name === name && this.currentProgram.strategy.offscreenRendering === renderStrategy.offscreenRendering && this.currentProgram.strategy.type == renderStrategy.type) {
+      console.warn(`Tried to start program with same name, offscreenRendering and driver`);
+      return;
+    }
+
     // create a new canvas and apply current window size
     const canvas = document.createElement('canvas');
     canvas.height = window.innerHeight;
     canvas.width = window.innerWidth;
+    canvas.style.pointerEvents = 'auto'
 
     // program handles/worker references
-    let programHandles: RenderProgramHandles | null = null;
+    let programHandles: RenderProgramHandles | null = null;    
 
     // start program either offscreen or normally
     if(renderStrategy.offscreenRendering) {
@@ -47,7 +57,9 @@ export class BackgroundProgramManager {
     }
 
     // construct a information object, with the current strategy, canvas, cleanup methods, handles for interacting with the graphics backend
-    const program = {
+    const cleanupController = this.addListeners(canvas, programHandles);
+    const program: ProgramRef = {
+      name: name,
       strategy: renderStrategy,
       programHandle: programHandles,
       canvas: canvas,
@@ -55,12 +67,15 @@ export class BackgroundProgramManager {
         // stop program, remove canvas and terminate the worker if there is any
         programHandles?.stop();
         canvas?.remove();
+        cleanupController?.abort();        
       }
-    } as const;
+    };
 
     // in dev mode print render info
-    isDevMode() && printRenderInfo(program)
-  
+    isDevMode() && printRenderInfo(program);
+
+    this.currentProgram = program;
+    
     // return program
     return program;
   }
@@ -94,6 +109,9 @@ export class BackgroundProgramManager {
       resize: (width: number, height: number) => {
         worker?.postMessage({ type: 'resize', width: width, height: height})
       },
+      mousemove: (x: number, y: number) => {
+        worker?.postMessage({ type: 'mousemove', mouseX: x, mouseY: y});
+      }
     }
 
     return programHandles;
@@ -158,4 +176,38 @@ export class BackgroundProgramManager {
     }
     return shaderSource as string;
   }
+
+  public addListeners(canvas: HTMLCanvasElement, handles: RenderProgramHandles | null) {    
+    if(!handles || !canvas) {      
+      return;
+    }
+    
+    const controller = new AbortController();
+
+    // add mouse movement
+    canvas.addEventListener('mousemove', (event) => {
+
+      // correct mouse position based on boundingRect
+      const rect = canvas.getBoundingClientRect();
+
+      const mouseX = ((event.clientX) - rect.left);
+      const mouseY = 1 - ((event.clientY) - rect.top);  // Normalize Y coordinate
+    
+      handles.mousemove(mouseX, mouseY)
+    }, { 
+      // passive: true, 
+      signal: controller.signal 
+    });
+
+    // canvas.addEventListener('click', (event) => {
+    //   console.log(event);
+    //   //handles.mousemove(event.x, event.y)
+    // }, { 
+    //   // passive: true, 
+    //   signal: controller.signal 
+    // });
+
+    return controller;
+  }
+  
 }

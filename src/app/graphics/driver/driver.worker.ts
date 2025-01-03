@@ -70,6 +70,7 @@ onmessage = async(evt) => {
   switch(evt.data.type) {
     case 'init':
       programHandles?.stop();
+      programHandles = null;
       init(evt.data);      
     break;
     case 'stop':
@@ -84,5 +85,8 @@ onmessage = async(evt) => {
     case 'resize':
     	programHandles?.resize(evt.data.width, evt.data.height)
     break;
+    case 'mousemove':
+    	programHandles?.mousemove(evt.data.mouseX, evt.data.mouseY)
+    break;    
   }
 };
