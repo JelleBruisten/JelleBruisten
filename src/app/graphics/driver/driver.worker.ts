@@ -3,12 +3,13 @@ import { type RenderProgramHandles, type RenderStrategy, RenderStrategyType } fr
 
 
 let programHandles: RenderProgramHandles | null = null;
-interface ExampleInit {
+interface BackgroundOptions {
   canvas: OffscreenCanvas;
   strategy: RenderStrategy,
   height: number;
   width: number;
-  shaderName: string
+  shaderName: string;
+  settings: Record<string, boolean>;
 }
 
 const shaderCache = new Map<string, string>();
@@ -33,7 +34,7 @@ const resolveShader = async(shaderName: string) => {
   return shaderSource as string;
 }
 
-const init = async (evt: ExampleInit) => {
+const init = async (evt: BackgroundOptions) => {
   const canvas = evt.canvas as OffscreenCanvas;
   const renderStrategy = evt.strategy as RenderStrategy;
 
@@ -42,6 +43,7 @@ const init = async (evt: ExampleInit) => {
     navigator: navigator,
     height: evt.height,
     width: evt.width,
+    settings: evt.settings
   } as const
 
   const shaderName = evt.shaderName;
@@ -49,28 +51,27 @@ const init = async (evt: ExampleInit) => {
   switch(renderStrategy.type) {
     case RenderStrategyType.WebGL: {
       const shaderSource = await resolveShader(`${shaderName}.glsl`);
-      programHandles = await import('./webgl.driver').then(async (x) => x.webGL2Driver({
+      return await import('./webgl.driver').then(async (x) => x.webGL2Driver({
         ...options,
         shaderSource: shaderSource
       }));
     }
-    break;
     case RenderStrategyType.WebGPU: {
       const shaderSource = await resolveShader(`${shaderName}.wgsl`);
-      programHandles = await import('./webgpu.driver').then(async (x) => x.webGPUDriver({
+      return await import('./webgpu.driver').then(async (x) => x.webGPUDriver({
         ...options,
         shaderSource: shaderSource
       }));
     }
-    break;
   }
 }
 
+
 onmessage = async(evt) => {
   switch(evt.data.type) {
-    case 'init':
+    case 'init':      
       programHandles?.stop();
-      init(evt.data);      
+      programHandles = await init(evt.data);          
     break;
     case 'stop':
       programHandles?.stop();
@@ -84,5 +85,11 @@ onmessage = async(evt) => {
     case 'resize':
     	programHandles?.resize(evt.data.width, evt.data.height)
     break;
+    case 'mousemove':
+    	programHandles?.mousemove(evt.data.mouseX, evt.data.mouseY)
+    break;    
+    case 'darkmode':
+      programHandles?.darkmode(evt.data.dark)
+    break;    
   }
 };

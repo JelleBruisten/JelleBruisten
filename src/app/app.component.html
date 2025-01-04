@@ -1,14 +1,6 @@
-<div class="absolute z-10 w-full h-full">
-  <div class="container mx-auto">
-    <div class="flex gap-2">
-      <button (click)="background()?.start('example')">Example</button> 
-      <button (click)="background()?.start('snow')">Snow</button> 
-      
-      - 
-
-      <button (click)="background()?.resume()">Play</button> 
-      <button (click)="background()?.pause()">Pause</button>
-    </div>
+<div class="absolute z-10 w-full pointer-events-none">
+  <div class="container mx-auto pointer-events-auto">
+    <router-outlet></router-outlet>  
   </div>  
 </div>
 

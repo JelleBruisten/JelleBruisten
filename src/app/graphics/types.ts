@@ -1,7 +1,6 @@
 export const enum RenderStrategyType {
   WebGL,
-  WebGPU,
-  Image
+  WebGPU
 }
 
 export interface RenderStrategy {
@@ -14,6 +13,8 @@ export interface RenderProgramHandles {
   pause(): void;
   resume(): void; 
   resize(width: number, height: number): void;
+  mousemove(x: number, y: number): void;
+  darkmode(darkmode: boolean): void;
 }
 
 export interface RenderProgramOptions {
@@ -23,5 +24,6 @@ export interface RenderProgramOptions {
   height: number;
 
   // contains a webgpu shader or fragment shader in the case of webGL
-  shaderSource: string
+  shaderSource: string;
+  settings: Record<string, boolean>
 }

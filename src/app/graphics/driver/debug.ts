@@ -6,7 +6,6 @@ export function printRenderInfo(program: { readonly strategy: RenderStrategy; re
     switch(type) {
       case RenderStrategyType.WebGPU: return 'WebGPU';
       case RenderStrategyType.WebGL: return 'WebGL';
-      case RenderStrategyType.Image: return 'Image';
     }
   }
 

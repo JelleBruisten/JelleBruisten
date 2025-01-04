@@ -4,6 +4,14 @@ import { RenderProgramHandles, RenderProgramOptions, RenderStrategy, RenderStrat
 import { DOCUMENT } from "@angular/common";
 import { printRenderInfo } from "./driver/debug";
 
+export interface ProgramRef { 
+  readonly name: string; 
+  readonly strategy: RenderStrategy; 
+  readonly programHandle: RenderProgramHandles | null; 
+  readonly canvas: HTMLCanvasElement; 
+  readonly destroy: () => void; 
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -15,39 +23,45 @@ export class BackgroundProgramManager {
   // lazy properties
   private shaderCache: Map<string, string> | undefined;
   private worker: Worker | undefined;
+  private currentProgram: ProgramRef | null = null;
 
-  async startProgram(name = 'snow', renderStrategy?: RenderStrategy) {
+  async startProgram(name = 'dots', renderStrategy?: RenderStrategy | null, settings?: Record<string, boolean>) {
     if(!renderStrategy) {
       renderStrategy = this.runtime.getRecommendedRenderStrategy();
     }
 
-    // renderStrategy = {
-    //   offscreenRendering: true,
-    //   type: RenderStrategyType.WebGPU
-    // }
-
-    const program = this.startProgramHelper(name, renderStrategy, this.document);
+    const program = await this.startProgramHelper(name, renderStrategy, settings);
     return program;
   }
 
-  private async startProgramHelper(name: string, renderStrategy: RenderStrategy, document: Document) {
+  private async startProgramHelper(name: string, renderStrategy: RenderStrategy, settings?: Record<string, boolean>) {
+    if(this.currentProgram && this.currentProgram.name === name && this.currentProgram.strategy.offscreenRendering === renderStrategy.offscreenRendering && this.currentProgram.strategy.type == renderStrategy.type) {
+      console.warn(`Tried to start program with same name, offscreenRendering and driver`);
+      return;
+    }
+
+    this.currentProgram?.destroy();
+
     // create a new canvas and apply current window size
-    const canvas = document.createElement('canvas');
+    const canvas = this.document.createElement('canvas');
     canvas.height = window.innerHeight;
     canvas.width = window.innerWidth;
+    canvas.style.pointerEvents = 'auto'
 
     // program handles/worker references
-    let programHandles: RenderProgramHandles | null = null;
+    let programHandles: RenderProgramHandles | null = null;    
 
     // start program either offscreen or normally
     if(renderStrategy.offscreenRendering) {
-      programHandles = await this.startProgramOffscreen(name, canvas, renderStrategy)      
+      programHandles = await this.startProgramOffscreen(name, canvas, renderStrategy, settings)      
     } else {    
-      programHandles = await this.startProgramNormally(name, canvas, renderStrategy);
+      programHandles = await this.startProgramNormally(name, canvas, renderStrategy, settings);
     }
 
     // construct a information object, with the current strategy, canvas, cleanup methods, handles for interacting with the graphics backend
-    const program = {
+    const cleanupController = new AbortController();
+    const program: ProgramRef = {
+      name: name,
       strategy: renderStrategy,
       programHandle: programHandles,
       canvas: canvas,
@@ -55,17 +69,20 @@ export class BackgroundProgramManager {
         // stop program, remove canvas and terminate the worker if there is any
         programHandles?.stop();
         canvas?.remove();
+        cleanupController?.abort();        
       }
-    } as const;
+    };
 
     // in dev mode print render info
-    isDevMode() && printRenderInfo(program)
-  
+    isDevMode() && printRenderInfo(program);
+
+    this.currentProgram = program;
+    
     // return program
     return program;
   }
 
-  private async startProgramOffscreen(shaderName: string,canvas: HTMLCanvasElement, renderStrategy: RenderStrategy) {
+  private async startProgramOffscreen(shaderName: string,canvas: HTMLCanvasElement, renderStrategy: RenderStrategy, settings: Record<string, boolean> = {}) {
     // worker 
     const worker = this.getWorker();
 
@@ -77,6 +94,7 @@ export class BackgroundProgramManager {
       width: document.defaultView?.innerWidth ?? 300,
       height: document.defaultView?.innerHeight ?? 300,
       shaderName: shaderName,
+      settings: settings,
       type: 'init' 
     }, [offscreen]);
 
@@ -94,6 +112,12 @@ export class BackgroundProgramManager {
       resize: (width: number, height: number) => {
         worker?.postMessage({ type: 'resize', width: width, height: height})
       },
+      mousemove: (x: number, y: number) => {
+        worker?.postMessage({ type: 'mousemove', mouseX: x, mouseY: y});
+      },
+      darkmode: (dark) => {
+        worker?.postMessage({ type: 'darkmode', dark: dark});
+      }
     }
 
     return programHandles;
@@ -104,13 +128,14 @@ export class BackgroundProgramManager {
     return this.worker;
   }
 
-  private async startProgramNormally(shaderName: string, canvas: HTMLCanvasElement, renderStrategy: RenderStrategy) {
+  private async startProgramNormally(shaderName: string, canvas: HTMLCanvasElement, renderStrategy: RenderStrategy, settings: Record<string, boolean> = {}) {
     let programHandles: RenderProgramHandles | null = null;
     const options = {
       canvas: canvas,
       navigator: navigator,
       height: document.defaultView?.innerHeight ?? 300,
-      width: document.defaultView?.innerWidth ?? 300,      
+      width: document.defaultView?.innerWidth ?? 300,  
+      settings: settings    
     } as const
 
     switch(renderStrategy.type) {

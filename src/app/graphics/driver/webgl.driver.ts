@@ -91,27 +91,34 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
   // Look up attribute and uniform locations
   const positionLocation = gl.getAttribLocation(program, 'a_position');
   const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
+  const mouseLocation = gl.getUniformLocation(program, 'u_mouse');
   const timeLocation = gl.getUniformLocation(program, 'u_time');
+  const darkModeLocation = gl.getUniformLocation(program, 'u_darkmode');
 
   // Enable the position attribute
   gl.enableVertexAttribArray(positionLocation);
   gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+  // darkmode
+  gl.useProgram(program);
+  gl.uniform1f(darkModeLocation, options.settings["dark"] ? 0.0 : 1.0);
 
   // Render loop
   let rafHandle: number | null = null;
 
   // control whether we are paused
   let paused = false;
+  let stopped = false;
 
   // time
   let accumulatedTime = 0;
   let lastRenderTime = 0; // Last frame's timestamp
   const render = (timestamp: number) => {
     if (!lastRenderTime) {
-      lastRenderTime = timestamp;
+      lastRenderTime = timestamp;      
     }
 
-    if (paused) {
+    if (paused || stopped) {
         return; // Skip rendering while paused
     }
 
@@ -129,19 +136,15 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
     // Use the program
     gl.useProgram(program);
 
-    // Set the uniforms
-    gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+    // Set the uniforms    
     gl.uniform1f(timeLocation, accumulatedTime / 1000);
+    gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
 
     // Draw the quad
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     requestAnimationFrame(render);
   }
-
-  // Start rendering
-  requestAnimationFrame(render);
-
   rafHandle = requestAnimationFrame(render);
 
   return {
@@ -167,9 +170,12 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
     },
     resize: (width, height) => {
       canvas.width = width;
-      canvas.height = height
+      canvas.height = height;
+      gl.useProgram(program);
+      gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
     },
     stop: () => {
+      stopped = true
       if (rafHandle) {
         cancelAnimationFrame(rafHandle);
         rafHandle = null;
@@ -177,6 +183,13 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
 
       // cleanup program
       cleanupProgram();
+    },
+    mousemove: (x, y) => {
+      gl.uniform2f(mouseLocation, x, y);
+    },
+    darkmode(dark) {
+      gl.useProgram(program);
+      gl.uniform1f(darkModeLocation, dark ? 0.0 : 1.0);
     }
   } satisfies RenderProgramHandles;
 

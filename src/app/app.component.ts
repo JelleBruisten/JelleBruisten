@@ -1,24 +1,19 @@
-import { Component, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { BackgroundComponent } from "./graphics/background.component";
+import { BackgroundControlComponent } from "./graphics/background-control.component";
+import { BackgroundService } from './graphics/background.service';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   imports: [
-    BackgroundComponent
+    BackgroundComponent,
+    RouterOutlet
 ],
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  styleUrl: './app.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent {
-
-  background = viewChild(BackgroundComponent);
-
-  // blockMainThread() {
-  //   const ms = 5000;
-  //   const start = new Date().getTime();
-  //   let end = start;
-  //   while(end < start + ms) {
-  //     end = new Date().getTime();
-  //  }
-  // }
+  service = inject(BackgroundService);
 }
