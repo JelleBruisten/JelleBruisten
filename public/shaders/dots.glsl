@@ -4,6 +4,7 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform vec2 u_mouse;
 uniform float u_time;
+uniform float u_darkmode;
 out vec4 fragColor;
 
 // gives the distance to a given line from a position p, 
@@ -109,7 +110,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         m += layer(uv * size + i * 15. + mouse) * fade;
     }
     
-    vec3 col = vec3(1) - mix(vec3(0.), vec3(0.3), vec3(m));
+    vec3 col = abs(vec3(u_darkmode) - mix(vec3(0.), vec3(0.3), vec3(m)));
 
 
     // Output to screen

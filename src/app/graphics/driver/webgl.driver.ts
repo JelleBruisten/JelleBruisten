@@ -93,10 +93,15 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
   const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
   const mouseLocation = gl.getUniformLocation(program, 'u_mouse');
   const timeLocation = gl.getUniformLocation(program, 'u_time');
+  const darkModeLocation = gl.getUniformLocation(program, 'u_darkmode');
 
   // Enable the position attribute
   gl.enableVertexAttribArray(positionLocation);
   gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+  // darkmode
+  gl.useProgram(program);
+  gl.uniform1f(darkModeLocation, options.settings["dark"] ? 0.0 : 1.0);
 
   // Render loop
   let rafHandle: number | null = null;
@@ -166,6 +171,7 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
     resize: (width, height) => {
       canvas.width = width;
       canvas.height = height;
+      gl.useProgram(program);
       gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
     },
     stop: () => {
@@ -180,6 +186,10 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
     },
     mousemove: (x, y) => {
       gl.uniform2f(mouseLocation, x, y);
+    },
+    darkmode(dark) {
+      gl.useProgram(program);
+      gl.uniform1f(darkModeLocation, dark ? 0.0 : 1.0);
     }
   } satisfies RenderProgramHandles;
 

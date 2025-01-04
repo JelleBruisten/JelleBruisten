@@ -25,23 +25,25 @@ export class BackgroundProgramManager {
   private worker: Worker | undefined;
   private currentProgram: ProgramRef | null = null;
 
-  async startProgram(name = 'dots', renderStrategy?: RenderStrategy | null) {
+  async startProgram(name = 'dots', renderStrategy?: RenderStrategy | null, settings?: Record<string, boolean>) {
     if(!renderStrategy) {
       renderStrategy = this.runtime.getRecommendedRenderStrategy();
     }
 
-    const program = await this.startProgramHelper(name, renderStrategy, this.document);
+    const program = await this.startProgramHelper(name, renderStrategy, settings);
     return program;
   }
 
-  private async startProgramHelper(name: string, renderStrategy: RenderStrategy, document: Document) {
+  private async startProgramHelper(name: string, renderStrategy: RenderStrategy, settings?: Record<string, boolean>) {
     if(this.currentProgram && this.currentProgram.name === name && this.currentProgram.strategy.offscreenRendering === renderStrategy.offscreenRendering && this.currentProgram.strategy.type == renderStrategy.type) {
       console.warn(`Tried to start program with same name, offscreenRendering and driver`);
       return;
     }
 
+    this.currentProgram?.destroy();
+
     // create a new canvas and apply current window size
-    const canvas = document.createElement('canvas');
+    const canvas = this.document.createElement('canvas');
     canvas.height = window.innerHeight;
     canvas.width = window.innerWidth;
     canvas.style.pointerEvents = 'auto'
@@ -51,13 +53,13 @@ export class BackgroundProgramManager {
 
     // start program either offscreen or normally
     if(renderStrategy.offscreenRendering) {
-      programHandles = await this.startProgramOffscreen(name, canvas, renderStrategy)      
+      programHandles = await this.startProgramOffscreen(name, canvas, renderStrategy, settings)      
     } else {    
-      programHandles = await this.startProgramNormally(name, canvas, renderStrategy);
+      programHandles = await this.startProgramNormally(name, canvas, renderStrategy, settings);
     }
 
     // construct a information object, with the current strategy, canvas, cleanup methods, handles for interacting with the graphics backend
-    const cleanupController = this.addListeners(canvas, programHandles);
+    const cleanupController = new AbortController();
     const program: ProgramRef = {
       name: name,
       strategy: renderStrategy,
@@ -80,7 +82,7 @@ export class BackgroundProgramManager {
     return program;
   }
 
-  private async startProgramOffscreen(shaderName: string,canvas: HTMLCanvasElement, renderStrategy: RenderStrategy) {
+  private async startProgramOffscreen(shaderName: string,canvas: HTMLCanvasElement, renderStrategy: RenderStrategy, settings: Record<string, boolean> = {}) {
     // worker 
     const worker = this.getWorker();
 
@@ -92,6 +94,7 @@ export class BackgroundProgramManager {
       width: document.defaultView?.innerWidth ?? 300,
       height: document.defaultView?.innerHeight ?? 300,
       shaderName: shaderName,
+      settings: settings,
       type: 'init' 
     }, [offscreen]);
 
@@ -111,6 +114,9 @@ export class BackgroundProgramManager {
       },
       mousemove: (x: number, y: number) => {
         worker?.postMessage({ type: 'mousemove', mouseX: x, mouseY: y});
+      },
+      darkmode: (dark) => {
+        worker?.postMessage({ type: 'darkmode', dark: dark});
       }
     }
 
@@ -122,13 +128,14 @@ export class BackgroundProgramManager {
     return this.worker;
   }
 
-  private async startProgramNormally(shaderName: string, canvas: HTMLCanvasElement, renderStrategy: RenderStrategy) {
+  private async startProgramNormally(shaderName: string, canvas: HTMLCanvasElement, renderStrategy: RenderStrategy, settings: Record<string, boolean> = {}) {
     let programHandles: RenderProgramHandles | null = null;
     const options = {
       canvas: canvas,
       navigator: navigator,
       height: document.defaultView?.innerHeight ?? 300,
-      width: document.defaultView?.innerWidth ?? 300,      
+      width: document.defaultView?.innerWidth ?? 300,  
+      settings: settings    
     } as const
 
     switch(renderStrategy.type) {
@@ -176,38 +183,4 @@ export class BackgroundProgramManager {
     }
     return shaderSource as string;
   }
-
-  public addListeners(canvas: HTMLCanvasElement, handles: RenderProgramHandles | null) {    
-    if(!handles || !canvas) {      
-      return;
-    }
-    
-    const controller = new AbortController();
-
-    // add mouse movement
-    canvas.addEventListener('mousemove', (event) => {
-
-      // correct mouse position based on boundingRect
-      const rect = canvas.getBoundingClientRect();
-
-      const mouseX = ((event.clientX) - rect.left);
-      const mouseY = 1 - ((event.clientY) - rect.top);  // Normalize Y coordinate
-    
-      handles.mousemove(mouseX, mouseY)
-    }, { 
-      // passive: true, 
-      signal: controller.signal 
-    });
-
-    // canvas.addEventListener('click', (event) => {
-    //   console.log(event);
-    //   //handles.mousemove(event.x, event.y)
-    // }, { 
-    //   // passive: true, 
-    //   signal: controller.signal 
-    // });
-
-    return controller;
-  }
-  
 }
