@@ -48,6 +48,8 @@ function createProgram(gl: WebGL2RenderingContext , vertexSource: string, fragme
     }
   ] as const;
 }
+const darkModeColor = 0.2;
+const lightModeColor = 1;
 
 export async function webGL2Driver(options: RenderProgramOptions): Promise<RenderProgramHandles | null> {
   const canvas = options.canvas;
@@ -101,7 +103,7 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
 
   // darkmode
   gl.useProgram(program);
-  gl.uniform1f(darkModeLocation, options.settings["dark"] ? 0.0 : 1.0);
+  gl.uniform1f(darkModeLocation, options.settings["dark"] ? darkModeColor : lightModeColor);
 
   // Render loop
   let rafHandle: number | null = null;
@@ -189,7 +191,7 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
     },
     darkmode(dark) {
       gl.useProgram(program);
-      gl.uniform1f(darkModeLocation, dark ? 0.0 : 1.0);
+      gl.uniform1f(darkModeLocation, dark ? darkModeColor : lightModeColor);
     }
   } satisfies RenderProgramHandles;
 
