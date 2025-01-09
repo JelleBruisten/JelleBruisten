@@ -14,9 +14,12 @@
   return vec4f(pos[vertexIndex], 0.0, 1.0);
 }
 
+// Uniform Structure
 struct Uniforms {
     iResolution: vec2f, // Screen resolution
     iTime: f32,         // Time
+    iDarkmode: f32,
+    iMouse: vec2f       // Mouse position
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
