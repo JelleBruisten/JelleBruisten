@@ -1,5 +1,5 @@
 import { DOCUMENT } from "@angular/common";
-import { computed, effect, inject, Injectable, signal } from "@angular/core";
+import { computed, effect, inject, Injectable, linkedSignal, signal } from "@angular/core";
 
 const enum MotionPreference {
   Auto,
@@ -55,12 +55,15 @@ export class SettingsService {
         const window = this.document.defaultView;
         const prefersDarkMode = window?.matchMedia('(prefers-color-scheme: dark)')?.matches ?? false;
         return prefersDarkMode;
-    }
-  });  
+    }  
+  });
+  readonly darkLevel = linkedSignal<number>(() => {
+    return this.effectiveDark() ? 0.0 : 1.0;
+  });   
 
   readonly effectiveSettings = computed(() => {
     return {
-      dark: this.effectiveDark(),
+      dark: this.darkLevel(),
       motion: this.effectiveReducedMotion()
     } as const
   })

@@ -1,4 +1,6 @@
 import { RenderProgramHandles, RenderProgramOptions } from "../types";
+import { clamp } from "./clamp";
+import { darkModeColor, lightModeColor } from "./constant";
 
 // Compile a shader
 function compileShader(gl: WebGL2RenderingContext , source: string, type: GLenum) {
@@ -48,8 +50,6 @@ function createProgram(gl: WebGL2RenderingContext , vertexSource: string, fragme
     }
   ] as const;
 }
-const darkModeColor = 0.2;
-const lightModeColor = 1;
 
 export async function webGL2Driver(options: RenderProgramOptions): Promise<RenderProgramHandles | null> {
   const canvas = options.canvas;
@@ -103,7 +103,7 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
 
   // darkmode
   gl.useProgram(program);
-  gl.uniform1f(darkModeLocation, options.settings["dark"] ? darkModeColor : lightModeColor);
+  gl.uniform1f(darkModeLocation, clamp(options.settings["dark"] as number, darkModeColor, lightModeColor));
 
   // Render loop
   let rafHandle: number | null = null;
@@ -191,7 +191,7 @@ export async function webGL2Driver(options: RenderProgramOptions): Promise<Rende
     },
     darkmode(dark) {
       gl.useProgram(program);
-      gl.uniform1f(darkModeLocation, dark ? darkModeColor : lightModeColor);
+      gl.uniform1f(darkModeLocation, clamp(dark, darkModeColor, lightModeColor))
     }
   } satisfies RenderProgramHandles;
 

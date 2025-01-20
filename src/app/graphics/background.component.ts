@@ -57,8 +57,8 @@ export class BackgroundComponent {
     });
 
     effect(() => {
-      const effectiveDark = this.settings.effectiveDark();
-      this.programRef?.programHandle?.darkmode(effectiveDark);
+      const dark = this.settings.darkLevel();
+      this.programRef?.programHandle?.darkmode(dark);
     });
 
     this.background.events$.pipe(takeUntilDestroyed()).subscribe((event) => {
@@ -70,7 +70,7 @@ export class BackgroundComponent {
     })
   }
 
-  async start(name?: string, renderStrategy?: RenderStrategy | null) {
+  async start(name: string, renderStrategy?: RenderStrategy | null) {
     const program = await this.programManager.startProgram(name, renderStrategy, this.settings.effectiveSettings());
     if(program) {          
       const canvas = program.canvas;

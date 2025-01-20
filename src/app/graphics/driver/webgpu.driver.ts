@@ -1,9 +1,8 @@
 /// <reference types="@webgpu/types" />
 
 import { RenderProgramHandles, RenderProgramOptions } from "../types";
-
-const darkModeColor = 0.2;
-const lightModeColor = 1;
+import { clamp } from "./clamp";
+import { darkModeColor, lightModeColor } from "./constant";
 
 export async function webGPUDriver(options: RenderProgramOptions): Promise<RenderProgramHandles | null> {
   if(!options.navigator?.gpu) {
@@ -42,7 +41,7 @@ export async function webGPUDriver(options: RenderProgramOptions): Promise<Rende
     iResolution: [canvas.width, canvas.height],
     iTime: 0.0,
     iMouse: [0, 0],
-    iDarkMode: options.settings["dark"] ? darkModeColor : lightModeColor
+    iDarkMode: clamp(options.settings["dark"] as number, darkModeColor, lightModeColor)
   };
 
   // Create a uniform buffer
@@ -193,7 +192,7 @@ export async function webGPUDriver(options: RenderProgramOptions): Promise<Rende
       uniforms.iMouse = [x, -y];
     },
     darkmode: (dark) => {
-      uniforms.iDarkMode = dark ? darkModeColor : lightModeColor;
+      uniforms.iDarkMode = clamp(dark, darkModeColor, lightModeColor);
     }
   } satisfies RenderProgramHandles;
 }

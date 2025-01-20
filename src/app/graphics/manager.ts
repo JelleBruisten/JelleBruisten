@@ -12,6 +12,8 @@ export interface ProgramRef {
   readonly destroy: () => void; 
 }
 
+type Settings = Record<string, boolean | number>;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -25,7 +27,7 @@ export class BackgroundProgramManager {
   private worker: Worker | undefined;
   private currentProgram: ProgramRef | null = null;
 
-  async startProgram(name = 'dots', renderStrategy?: RenderStrategy | null, settings?: Record<string, boolean>) {
+  async startProgram(name: string, renderStrategy?: RenderStrategy | null, settings?: Settings) {
     if(!renderStrategy) {
       renderStrategy = this.runtime.getRecommendedRenderStrategy();
     }
@@ -34,7 +36,7 @@ export class BackgroundProgramManager {
     return program;
   }
 
-  private async startProgramHelper(name: string, renderStrategy: RenderStrategy, settings?: Record<string, boolean>) {
+  private async startProgramHelper(name: string, renderStrategy: RenderStrategy, settings?: Settings) {
     if(this.currentProgram && this.currentProgram.name === name && this.currentProgram.strategy.offscreenRendering === renderStrategy.offscreenRendering && this.currentProgram.strategy.type == renderStrategy.type) {
       console.warn(`Tried to start program with same name, offscreenRendering and driver`);
       return;
@@ -82,7 +84,7 @@ export class BackgroundProgramManager {
     return program;
   }
 
-  private async startProgramOffscreen(shaderName: string,canvas: HTMLCanvasElement, renderStrategy: RenderStrategy, settings: Record<string, boolean> = {}) {
+  private async startProgramOffscreen(shaderName: string,canvas: HTMLCanvasElement, renderStrategy: RenderStrategy, settings: Settings = {}) {
     // worker 
     const worker = this.getWorker();
 
@@ -128,7 +130,7 @@ export class BackgroundProgramManager {
     return this.worker;
   }
 
-  private async startProgramNormally(shaderName: string, canvas: HTMLCanvasElement, renderStrategy: RenderStrategy, settings: Record<string, boolean> = {}) {
+  private async startProgramNormally(shaderName: string, canvas: HTMLCanvasElement, renderStrategy: RenderStrategy, settings: Settings = {}) {
     let programHandles: RenderProgramHandles | null = null;
     const options = {
       canvas: canvas,

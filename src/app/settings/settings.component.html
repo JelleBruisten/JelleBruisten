@@ -15,6 +15,8 @@
     <button [class.font-bold]="service.dark() === 1" class="hover:underline" (click)="service.dark.set(1)">White</button>   
     <button [class.font-bold]="service.dark() === 2" class="hover:underline" (click)="service.dark.set(2)">Dark</button>   
   </div>
+  <input type="range" (change)="updateDarkMode($event)" min="0" max="1" [value]="service.darkLevel()" step="0.01" />
+  level: {{ service.darkLevel() }}
   <br/>   
 
   <app-background-control></app-background-control>

@@ -14,7 +14,7 @@ export interface RenderProgramHandles {
   resume(): void; 
   resize(width: number, height: number): void;
   mousemove(x: number, y: number): void;
-  darkmode(darkmode: boolean): void;
+  darkmode(darkmode: number): void;
 }
 
 export interface RenderProgramOptions {
@@ -25,5 +25,5 @@ export interface RenderProgramOptions {
 
   // contains a webgpu shader or fragment shader in the case of webGL
   shaderSource: string;
-  settings: Record<string, boolean>
+  settings: Record<string, boolean | number>
 }

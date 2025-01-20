@@ -3,7 +3,7 @@ import { RenderStrategy, RenderStrategyType } from "./types";
 import { Subject } from "rxjs";
 
 const availableBackgrounds = [
-  'example', 'snow', 'dots', 'shapes'
+  'example', 'snow', 'dots', 'shapes', 'perlin'
 ] as const;
 
 type BackgroundName = typeof availableBackgrounds[number];
@@ -16,7 +16,7 @@ interface BackgroundEvent {
 @Injectable({ providedIn: 'root'})
 export class BackgroundService {
   readonly strategy = signal<RenderStrategy | null>(null);
-  readonly name = signal<BackgroundName>('shapes');
+  readonly name = signal<BackgroundName>('perlin');
   readonly availableBackgrounds = [... availableBackgrounds];
   readonly events$ = new Subject<BackgroundEvent>();
 
