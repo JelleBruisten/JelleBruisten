@@ -1,5 +1,6 @@
 import { DOCUMENT } from "@angular/common";
 import { computed, effect, inject, Injectable, linkedSignal, signal } from "@angular/core";
+import { darkModeColor, lightModeColor } from "../graphics/driver/constant";
 
 const enum MotionPreference {
   Auto,
@@ -43,22 +44,26 @@ export class SettingsService {
   // darkmode
   readonly dark = signal<DarkPreference>(DarkPreference.Auto);
   readonly effectiveDark = computed(() => {
-    const dark = this.dark();
-    switch(dark) {
-      case DarkPreference.Dark:
-        return true;
-      case DarkPreference.Light:
-        return false;        
-
-      case DarkPreference.Auto:
-      default:
-        const window = this.document.defaultView;
-        const prefersDarkMode = window?.matchMedia('(prefers-color-scheme: dark)')?.matches ?? false;
-        return prefersDarkMode;
-    }  
+    const darkLevel = this.darkLevel();
+    return darkLevel <= 0.5;
   });
   readonly darkLevel = linkedSignal<number>(() => {
-    return this.effectiveDark() ? 0.0 : 1.0;
+    const darkPreference = this.dark();
+    const isDark = (dark: DarkPreference) => {
+      switch(dark) {
+        case DarkPreference.Dark:
+          return true;
+        case DarkPreference.Light:
+          return false;        
+  
+        case DarkPreference.Auto:
+        default:
+          const window = this.document.defaultView;
+          const prefersDarkMode = window?.matchMedia('(prefers-color-scheme: dark)')?.matches ?? false;
+          return prefersDarkMode;
+      } 
+    }
+    return isDark(darkPreference) ? darkModeColor : lightModeColor;
   });   
 
   readonly effectiveSettings = computed(() => {

@@ -62,7 +62,10 @@ fn tetraNoise(o: vec2<f32>) -> f32 {
 
 @fragment
 fn fs(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4<f32> {
-    var p = (fragCoord.xy * 2.5 - uniforms.iResolution.xy) / 
+    let uv = vec2f(fragCoord.xy);
+    // Flip the Y coordinate
+    let flippedUV = vec2f(uv.x, uniforms.iResolution.y - uv.y);
+    let p = (flippedUV * 2.5 - uniforms.iResolution.xy) / 
             (uniforms.iResolution.y / 2.0 + uniforms.iResolution.x / 2.0);
 
     let f = sin(32.0 * tetraNoise(p));
